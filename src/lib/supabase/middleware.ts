@@ -35,18 +35,33 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protected routes - redirect to login if unauthenticated
+  // Note: /calculator and /library are PUBLIC for SEO
+  // The authenticated app versions live under /(app)/ route group
   const protectedPaths = [
     "/dashboard",
     "/my-peptides",
     "/schedule",
-    "/calculator",
     "/settings",
     "/history",
-    "/library",
     "/onboarding",
   ];
 
-  const isProtected = protectedPaths.some((path) =>
+  // Public paths that should NEVER redirect to login
+  const publicPaths = [
+    "/calculator",
+    "/bac-water-calculator",
+    "/unit-converter",
+    "/library",
+    "/peptides",
+    "/p/",
+    "/embed/",
+  ];
+
+  const isPublic = publicPaths.some((path) =>
+    request.nextUrl.pathname.startsWith(path)
+  );
+
+  const isProtected = !isPublic && protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   );
 

@@ -3,6 +3,8 @@
  * All units are in mcg and ml unless otherwise noted.
  */
 
+import type { SyringeType } from '@/types/database';
+
 /** Calculate concentration after reconstitution */
 export function calculateConcentration(
   vialSizeMcg: number,
@@ -61,12 +63,74 @@ export function calculateDaysSupply(
   return Math.floor(totalDoses / dosesPerDay);
 }
 
+/** Calculate cost per dose in cents */
+export function calculateCostPerDose(
+  vialPriceCents: number,
+  dosesPerVial: number
+): number {
+  if (dosesPerVial <= 0) return 0;
+  return vialPriceCents / dosesPerVial;
+}
+
+/** Recommend the best syringe size based on injection volume */
+export function suggestSyringeSize(volumeMl: number): SyringeType {
+  if (volumeMl <= 0.3) return '0.3ml';
+  if (volumeMl <= 0.5) return '0.5ml';
+  return '1.0ml';
+}
+
+/** Get the tick interval for a syringe type (units between marks) */
+export function getTickInterval(syringeType: SyringeType): number {
+  return syringeType === '1.0ml' ? 2 : 1;
+}
+
+/** Snap syringe units to the nearest readable tick mark */
+export function nearestTickMark(
+  units: number,
+  syringeType: SyringeType
+): number {
+  const interval = getTickInterval(syringeType);
+  return Math.round(units / interval) * interval;
+}
+
+/** IU-based dose calculation for HCG/HGH */
+export function calculateIUDose(
+  vialIU: number,
+  bacWaterMl: number,
+  desiredIU: number
+): { concentrationIUPerMl: number; volumeMl: number; syringeUnits: number } {
+  if (bacWaterMl <= 0) {
+    return { concentrationIUPerMl: 0, volumeMl: 0, syringeUnits: 0 };
+  }
+  const concentrationIUPerMl = vialIU / bacWaterMl;
+  const volumeMl = desiredIU / concentrationIUPerMl;
+  const syringeUnits = mlToSyringeUnits(volumeMl);
+  return { concentrationIUPerMl, volumeMl, syringeUnits };
+}
+
+/** Format a dose value with its unit label */
+export function formatDoseWithUnit(
+  value: number,
+  unitType: 'mcg' | 'mg' | 'iu'
+): string {
+  switch (unitType) {
+    case 'mcg':
+      return `${formatNumber(value)} mcg`;
+    case 'mg':
+      return `${formatNumber(value)} mg`;
+    case 'iu':
+      return `${formatNumber(value)} IU`;
+  }
+}
+
 /** Full calculation result from vial + BAC water + desired dose */
 export interface MixingResult {
   concentrationMcgPerMl: number;
   injectionVolumeMl: number;
   syringeUnits: number;
   dosesPerVial: number;
+  suggestedSyringe: SyringeType;
+  nearestTickUnits: number;
 }
 
 export function calculateMixing(
@@ -81,12 +145,16 @@ export function calculateMixing(
   );
   const syringeUnits = mlToSyringeUnits(injectionVolumeMl);
   const dosesPerVial = calculateDosesRemaining(vialSizeMcg, desiredDoseMcg);
+  const suggestedSyringe = suggestSyringeSize(injectionVolumeMl);
+  const nearestTickUnits = nearestTickMark(syringeUnits, suggestedSyringe);
 
   return {
     concentrationMcgPerMl,
     injectionVolumeMl,
     syringeUnits,
     dosesPerVial,
+    suggestedSyringe,
+    nearestTickUnits,
   };
 }
 

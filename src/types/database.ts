@@ -1,6 +1,11 @@
 // Supabase generated types - will be replaced by `supabase gen types`
 // For now, manual types matching our schema
 
+export interface PeptideFAQ {
+  q: string;
+  a: string;
+}
+
 export type Json =
   | string
   | number
@@ -65,6 +70,12 @@ export interface Database {
           common_bac_water_ml: number;
           storage_instructions: string | null;
           is_published: boolean;
+          unit_type: "mcg" | "mg" | "iu";
+          delivery_forms: string[];
+          seo_title: string | null;
+          seo_description: string | null;
+          faq: PeptideFAQ[] | null;
+          how_to_calculate: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -83,6 +94,12 @@ export interface Database {
           common_bac_water_ml?: number;
           storage_instructions?: string | null;
           is_published?: boolean;
+          unit_type?: "mcg" | "mg" | "iu";
+          delivery_forms?: string[];
+          seo_title?: string | null;
+          seo_description?: string | null;
+          faq?: PeptideFAQ[] | null;
+          how_to_calculate?: string | null;
         };
         Update: {
           name?: string;
@@ -98,6 +115,67 @@ export interface Database {
           common_bac_water_ml?: number;
           storage_instructions?: string | null;
           is_published?: boolean;
+          unit_type?: "mcg" | "mg" | "iu";
+          seo_title?: string | null;
+          seo_description?: string | null;
+          faq?: PeptideFAQ[] | null;
+          how_to_calculate?: string | null;
+        };
+      };
+      peptide_variants: {
+        Row: {
+          id: string;
+          peptide_id: string;
+          size_mcg: number;
+          size_label: string;
+          common_bac_water_ml: number;
+          is_default: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          peptide_id: string;
+          size_mcg: number;
+          size_label: string;
+          common_bac_water_ml?: number;
+          is_default?: boolean;
+          sort_order?: number;
+        };
+        Update: {
+          size_mcg?: number;
+          size_label?: string;
+          common_bac_water_ml?: number;
+          is_default?: boolean;
+          sort_order?: number;
+        };
+      };
+      peptide_titration_steps: {
+        Row: {
+          id: string;
+          peptide_id: string;
+          step_number: number;
+          dose_mcg: number;
+          duration_weeks: number;
+          label: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          peptide_id: string;
+          step_number: number;
+          dose_mcg: number;
+          duration_weeks: number;
+          label?: string | null;
+          notes?: string | null;
+        };
+        Update: {
+          step_number?: number;
+          dose_mcg?: number;
+          duration_weeks?: number;
+          label?: string | null;
+          notes?: string | null;
         };
       };
       user_peptides: {
@@ -251,4 +329,33 @@ export interface Database {
     Functions: {};
     Enums: {};
   };
+}
+
+// Convenience type aliases
+export type Peptide = Database["public"]["Tables"]["peptides"]["Row"];
+export type PeptideVariant = Database["public"]["Tables"]["peptide_variants"]["Row"];
+export type TitrationStep = Database["public"]["Tables"]["peptide_titration_steps"]["Row"];
+export type UserPeptide = Database["public"]["Tables"]["user_peptides"]["Row"];
+export type DoseSchedule = Database["public"]["Tables"]["dose_schedules"]["Row"];
+export type DoseLog = Database["public"]["Tables"]["dose_logs"]["Row"];
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+
+// Enriched types for UI
+export interface PeptideWithVariants extends Peptide {
+  variants: PeptideVariant[];
+  titration_steps: TitrationStep[];
+}
+
+export type SyringeType = "0.3ml" | "0.5ml" | "1.0ml";
+
+export interface CalculationResult {
+  concentrationMcgPerMl: number;
+  injectionVolumeMl: number;
+  syringeUnits: number;
+  dosesPerVial: number;
+  daysSupply: number;
+  costPerDose: number | null;
+  suggestedSyringe: SyringeType;
+  nearestTick: number;
+  unitLabel: string; // "mcg", "mg", or "IU"
 }
