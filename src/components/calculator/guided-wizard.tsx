@@ -123,17 +123,17 @@ const SYRINGE_OPTIONS: {
   {
     label: "0.3 mL",
     value: "0.3ml",
-    description: "30 units - best precision for small doses",
+    description: "30 units — most precise. Each line = 1 unit. Best for small doses under 30 units.",
   },
   {
     label: "0.5 mL",
     value: "0.5ml",
-    description: "50 units - good all-around choice",
+    description: "50 units — good all-around. Each line = 1 unit. Great for medium doses.",
   },
   {
     label: "1.0 mL",
     value: "1.0ml",
-    description: "100 units - for larger volumes",
+    description: "100 units — the standard insulin syringe most people have. ⚠️ Each line = 2 units, not 1!",
   },
 ];
 
@@ -433,9 +433,10 @@ export function GuidedWizard({ peptide, allPeptides }: GuidedWizardProps) {
             {peptide?.recommended_dose_mcg_min &&
               peptide?.recommended_dose_mcg_max && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Typical range: {formatNumber(peptide.recommended_dose_mcg_min)}
-                  &ndash;
-                  {formatNumber(peptide.recommended_dose_mcg_max)} {unitLabel}
+                  Typical range:{" "}
+                  {isWeightLoss(peptide)
+                    ? `${mcgToMg(peptide.recommended_dose_mcg_min)}–${mcgToMg(peptide.recommended_dose_mcg_max)} mg`
+                    : `${formatNumber(peptide.recommended_dose_mcg_min)}–${formatNumber(peptide.recommended_dose_mcg_max)} ${unitLabel}`}
                 </p>
               )}
           </div>
@@ -446,14 +447,22 @@ export function GuidedWizard({ peptide, allPeptides }: GuidedWizardProps) {
           <div className="space-y-4">
             <div className="text-center space-y-1">
               <h2 className="text-lg font-heading font-semibold">
-                What syringe are you using?
+                Which insulin syringe do you have?
               </h2>
               <p className="text-sm text-muted-foreground">
                 We recommend a{" "}
                 <span className="font-medium text-primary">
                   {suggestedSyringe}
                 </span>{" "}
-                syringe for this dose
+                syringe for your dose
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-muted/50 border border-border/50 p-3 text-center">
+              <p className="text-xs text-muted-foreground">
+                <strong>Not sure?</strong> Look at the numbers on your syringe.
+                If it goes up to <strong>100</strong>, you have a 1.0 mL syringe (most common).
+                Up to <strong>50</strong>? That&apos;s 0.5 mL. Up to <strong>30</strong>? That&apos;s 0.3 mL.
               </p>
             </div>
 

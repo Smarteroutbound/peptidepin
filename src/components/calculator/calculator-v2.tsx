@@ -37,19 +37,32 @@ function generateDoseOptions(
   peptide?: PeptideWithVariants
 ): { label: string; value: number }[] {
   const isIU = peptide?.unit_type === "iu";
+  const isGLP1 = peptide?.category === "weight-loss";
+
+  // GLP-1 peptides: show mg values (how users actually think)
+  if (isGLP1) {
+    return [
+      { label: "0.25 mg", value: 250 },
+      { label: "0.5 mg", value: 500 },
+      { label: "1 mg", value: 1000 },
+      { label: "2.5 mg", value: 2500 },
+      { label: "5 mg", value: 5000 },
+      { label: "7.5 mg", value: 7500 },
+      { label: "10 mg", value: 10000 },
+      { label: "15 mg", value: 15000 },
+    ];
+  }
 
   if (peptide?.recommended_dose_mcg_min && peptide?.recommended_dose_mcg_max) {
     const min = peptide.recommended_dose_mcg_min;
     const max = peptide.recommended_dose_mcg_max;
     const mid = Math.round((min + max) / 2);
 
-    // Build a set of 3-5 nice round numbers
     const candidates = new Set<number>();
     candidates.add(min);
     if (mid !== min && mid !== max) candidates.add(mid);
     candidates.add(max);
 
-    // Add a low-end option if range is wide
     if (max / min >= 3) {
       const quarter = Math.round(min + (max - min) * 0.25);
       candidates.add(quarter);
@@ -296,7 +309,7 @@ export function CalculatorV2({
           </span>
         </div>
         <ButtonGroup
-          label={`Desired Dose (${unitLabel})`}
+          label={peptide?.category === "weight-loss" ? "Desired Dose (mg)" : `Desired Dose (${unitLabel})`}
           icon={<Target className="h-3.5 w-3.5" />}
           options={doseOptions}
           value={desiredDose}
@@ -306,13 +319,15 @@ export function CalculatorV2({
             updateUrl("dose", num);
           }}
           allowCustom
-          customPlaceholder={isIU ? "e.g. 500" : "e.g. 250"}
-          customSuffix={unitLabel}
+          customPlaceholder={peptide?.category === "weight-loss" ? "e.g. 0.5" : isIU ? "e.g. 500" : "e.g. 250"}
+          customSuffix={peptide?.category === "weight-loss" ? "mg" : unitLabel}
         />
         {peptide?.recommended_dose_mcg_min && peptide?.recommended_dose_mcg_max && (
           <p className="text-xs text-muted-foreground mt-1">
-            Typical range: {formatNumber(peptide.recommended_dose_mcg_min)}&ndash;
-            {formatNumber(peptide.recommended_dose_mcg_max)} {unitLabel}
+            Typical range:{" "}
+            {peptide.category === "weight-loss"
+              ? `${mcgToMg(peptide.recommended_dose_mcg_min)}–${mcgToMg(peptide.recommended_dose_mcg_max)} mg`
+              : `${formatNumber(peptide.recommended_dose_mcg_min)}–${formatNumber(peptide.recommended_dose_mcg_max)} ${unitLabel}`}
           </p>
         )}
       </section>
