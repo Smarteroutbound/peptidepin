@@ -26,6 +26,8 @@ INSERT INTO public.peptides (name, slug, description, category, typical_vial_siz
 
 ('Tesamorelin', 'tesamorelin', 'Growth hormone releasing hormone analog. FDA-approved for reducing visceral adipose tissue.', 'growth', 2000, 1000, 2000, '1x daily', 'Reconstitute with provided diluent or BAC water.', 0.5, 2.0, 'Refrigerate. Use within 28 days.'),
 
+('Sermorelin', 'sermorelin', 'Growth hormone releasing hormone analog. Stimulates natural GH production from the pituitary gland.', 'growth', 5000, 200, 500, '1x daily before bed', 'Reconstitute with BAC water. Best taken on empty stomach before bed, at least 2 hours after last meal.', 0.5, 2.0, 'Refrigerate. Use within 30 days.'),
+
 -- Anti-Aging
 ('GHK-Cu', 'ghk-cu', 'Copper peptide complex. Studied for skin rejuvenation, wound healing, and anti-aging effects.', 'anti-aging', 5000, 200, 600, '1x daily', 'Reconstitute with BAC water. Can also be used topically.', 12, 2.0, 'Refrigerate. Use within 30 days.'),
 
