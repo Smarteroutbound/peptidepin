@@ -1,65 +1,167 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Calculator,
+  CalendarClock,
+  Bell,
+  FlaskConical,
+  Syringe,
+  Shield,
+  ArrowRight,
+} from "lucide-react";
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex min-h-dvh flex-col">
+      {/* Nav */}
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <span className="font-heading text-sm font-bold text-primary-foreground">
+                Pp
+              </span>
+            </div>
+            <span className="font-heading text-lg font-bold">PeptidePin</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                Sign in
+              </Button>
+            </Link>
+            <Link href="/signup">
+              <Button size="sm">Get started</Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+        <div className="mx-auto max-w-2xl space-y-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm text-primary">
+            <Syringe className="h-3.5 w-3.5" />
+            Precision dosing made simple
+          </div>
+
+          <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            Never miss a
+            <span className="text-primary"> peptide dose</span> again
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="mx-auto max-w-lg text-lg text-muted-foreground">
+            Calculate reconstitution, track your vials, schedule doses, and get
+            reminders. The all-in-one peptide companion app.
           </p>
+
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Link href="/signup">
+              <Button size="lg" className="touch-target w-full sm:w-auto">
+                Start for free
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button
+                variant="outline"
+                size="lg"
+                className="touch-target w-full sm:w-auto"
+              >
+                Sign in
+              </Button>
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      </section>
+
+      {/* Features */}
+      <section className="border-t border-border/50 bg-muted/30 px-4 py-16">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="mb-10 text-center font-heading text-2xl font-bold sm:text-3xl">
+            Everything you need
+          </h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <FeatureCard
+              icon={<Calculator className="h-5 w-5" />}
+              title="Mixing Calculator"
+              description="Calculate exact BAC water volumes, concentrations, and syringe units with a visual syringe guide."
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <FeatureCard
+              icon={<FlaskConical className="h-5 w-5" />}
+              title="Vial Tracking"
+              description="Track your peptide inventory. Know exactly how many doses remain in each vial."
+            />
+            <FeatureCard
+              icon={<CalendarClock className="h-5 w-5" />}
+              title="Dose Scheduling"
+              description="Set up dose schedules with flexible frequencies. See your daily plan at a glance."
+            />
+            <FeatureCard
+              icon={<Bell className="h-5 w-5" />}
+              title="Smart Reminders"
+              description="Push notifications when it's time for your dose. Never miss a scheduled injection."
+            />
+            <FeatureCard
+              icon={<Syringe className="h-5 w-5" />}
+              title="Syringe Visual"
+              description="See exactly where to draw on your insulin syringe with an animated fill-level guide."
+            />
+            <FeatureCard
+              icon={<Shield className="h-5 w-5" />}
+              title="Private & Secure"
+              description="Your data is encrypted and never shared. Access from any device with your account."
+            />
+          </div>
         </div>
-      </main>
+      </section>
+
+      {/* CTA */}
+      <section className="px-4 py-16 text-center">
+        <div className="mx-auto max-w-lg space-y-4">
+          <h2 className="font-heading text-2xl font-bold">
+            Ready to get precise?
+          </h2>
+          <p className="text-muted-foreground">
+            Join thousands of peptide users who trust PeptidePin for accurate
+            dosing.
+          </p>
+          <Link href="/signup">
+            <Button size="lg" className="touch-target">
+              Create free account
+              <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 px-4 py-6">
+        <div className="mx-auto flex max-w-5xl items-center justify-between text-xs text-muted-foreground">
+          <span>&copy; {new Date().getFullYear()} PeptidePin</span>
+          <span>Not medical advice. Consult your healthcare provider.</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-card p-5 transition-colors hover:bg-muted/50">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <h3 className="mb-1 font-heading font-semibold">{title}</h3>
+      <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }
