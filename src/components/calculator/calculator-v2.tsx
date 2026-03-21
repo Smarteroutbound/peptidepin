@@ -69,8 +69,9 @@ export function CalculatorV2({
   const sortedVariants = [...variants].sort((a, b) => a.sort_order - b.sort_order);
   const selectedDefault = defaultVariant || sortedVariants.find((v) => v.is_default) || sortedVariants[0];
 
-  const [selectedVariantId, setSelectedVariantId] = useState(
-    selectedDefault?.id || ""
+  // Use size_label as select value (Base UI Select displays value, not label)
+  const [selectedVariantLabel, setSelectedVariantLabel] = useState(
+    selectedDefault?.size_label || ""
   );
   const [vialSize, setVialSize] = useState(
     getDefault("vial", selectedDefault?.size_mcg || peptide?.typical_vial_size_mcg || 5000)
@@ -124,11 +125,11 @@ export function CalculatorV2({
   );
 
   // Handle variant selection
-  const handleVariantChange = (variantId: string | null) => {
-    if (!variantId) return;
-    const variant = variants.find((v) => v.id === variantId);
+  const handleVariantChange = (label: string | null) => {
+    if (!label) return;
+    const variant = variants.find((v) => v.size_label === label);
     if (variant) {
-      setSelectedVariantId(variantId);
+      setSelectedVariantLabel(label);
       setVialSize(variant.size_mcg);
       setBacWaterMl(variant.common_bac_water_ml);
       updateUrl("vial", variant.size_mcg);
@@ -174,7 +175,7 @@ export function CalculatorV2({
                   Vial Size
                 </Label>
                 <Select
-                  value={selectedVariantId}
+                  value={selectedVariantLabel}
                   onValueChange={handleVariantChange}
                 >
                   <SelectTrigger className="touch-target">
@@ -182,7 +183,7 @@ export function CalculatorV2({
                   </SelectTrigger>
                   <SelectContent>
                     {sortedVariants.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
+                      <SelectItem key={v.id} value={v.size_label}>
                         {v.size_label}
                         {isIU ? "" : ` (${v.size_mcg.toLocaleString()} ${unitLabelLower})`}
                       </SelectItem>
@@ -348,12 +349,21 @@ export function CalculatorV2({
               {/* Key result - prominent */}
               <div className="text-center">
                 <p className="text-3xl font-heading font-bold text-primary">
-                  {formatNumber(result.snappedUnits, 1)} units
+                  {formatNumber(result.syringeUnits, 1)} units
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Draw to the {formatNumber(result.snappedUnits, 1)} mark on your{" "}
+                  Draw to the {formatNumber(result.syringeUnits, 1)} mark on your{" "}
                   {syringeType} syringe
                 </p>
+                {result.tickInterval === 2 && result.syringeUnits % 2 !== 0 && (
+                  <p className="text-xs text-amber-500 mt-1">
+                    Note: On a 1.0mL syringe, tick marks are every 2 units.{" "}
+                    {formatNumber(result.syringeUnits, 1)} is between the{" "}
+                    {Math.floor(result.syringeUnits / 2) * 2} and{" "}
+                    {Math.ceil(result.syringeUnits / 2) * 2} marks.
+                    Consider a 0.5mL or 0.3mL syringe for more precision.
+                  </p>
+                )}
               </div>
 
               {/* Results grid */}
