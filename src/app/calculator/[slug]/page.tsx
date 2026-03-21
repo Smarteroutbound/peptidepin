@@ -11,7 +11,7 @@ import {
   generateBreadcrumbSchema,
   JsonLdScript,
 } from "@/lib/seo";
-import { CalculatorV2 } from "@/components/calculator/calculator-v2";
+import { CalculatorWithMode } from "@/components/calculator/calculator-with-mode";
 import { Badge } from "@/components/ui/badge";
 import { formatNumber, mcgToMg } from "@/lib/calculations";
 import { ChevronRight } from "lucide-react";
@@ -159,7 +159,7 @@ export default async function PeptideCalculatorPage({
       <Suspense
         fallback={<div className="h-96 animate-pulse bg-muted rounded-lg" />}
       >
-        <CalculatorV2 peptide={peptide} syncUrl={true} />
+        <CalculatorWithMode peptide={peptide} />
       </Suspense>
 
       {/* How to calculate section */}
