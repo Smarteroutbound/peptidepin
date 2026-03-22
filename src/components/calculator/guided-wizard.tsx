@@ -418,7 +418,17 @@ export function GuidedWizard({ peptide, allPeptides }: GuidedWizardProps) {
               icon={<Target className="h-3.5 w-3.5" />}
               options={doseOptions}
               value={desiredDoseMcg}
-              onChange={(v) => setDesiredDoseMcg(Number(v))}
+              onChange={(v) => {
+                const num = Number(v);
+                // Preset buttons already return mcg. Custom input for GLP-1 needs
+                // mg→mcg conversion: if value < 100 and peptide is weight-loss,
+                // it's likely typed in mg (e.g. 0.5, 2.5, 7.5)
+                if (isWeightLoss(peptide) && num > 0 && num < 100) {
+                  setDesiredDoseMcg(num * 1000);
+                } else {
+                  setDesiredDoseMcg(num);
+                }
+              }}
               allowCustom
               customPlaceholder={
                 isWeightLoss(peptide)

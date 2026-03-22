@@ -314,7 +314,12 @@ export function CalculatorV2({
           options={doseOptions}
           value={desiredDose}
           onChange={(v) => {
-            const num = Number(v);
+            let num = Number(v);
+            // Custom input for GLP-1 comes in mg (e.g. 0.5, 2.5) — convert to mcg
+            // Preset buttons already return mcg values, so only convert small numbers
+            if (peptide?.category === "weight-loss" && num > 0 && num < 100) {
+              num = num * 1000;
+            }
             setDesiredDose(num);
             updateUrl("dose", num);
           }}
