@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 
 interface LogDoseOptions {
   user_peptide_id: string;
@@ -31,28 +30,21 @@ export function useLogDose(): UseLogDoseReturn {
     setIsLogging(true);
 
     try {
-      const supabase = createClient();
+      // H2 FIX: Use API route instead of direct Supabase insert
+      // This ensures server-side validation + ownership checks
+      const res = await fetch("/api/dose-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(options),
+      });
 
-      const { data, error } = await (supabase.from("dose_logs") as any)
-        .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          user_peptide_id: options.user_peptide_id,
-          schedule_id: options.schedule_id || null,
-          dose_mcg: options.dose_mcg,
-          volume_ml: options.volume_ml || null,
-          scheduled_at: options.scheduled_at || null,
-          taken_at: new Date().toISOString(),
-          status: options.status || "taken",
-          notes: options.notes || null,
-        })
-        .select("id")
-        .single();
-
-      if (error) {
-        toast.error("Failed to log dose", { description: error.message });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error("Failed to log dose", { description: err.error });
         return null;
       }
 
+      const data = await res.json();
       const logId = data.id as string;
       const statusLabel = options.status === "skipped" ? "Dose skipped" : "Dose logged";
 

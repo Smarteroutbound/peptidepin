@@ -53,7 +53,7 @@ function buildTodaysDoses(schedules: any[], logs: any[]): DoseItem[] {
     let syringeUnits = 0;
     if (schedule.user_peptide?.vial_size_mcg && schedule.user_peptide?.bac_water_ml) {
       const result = calculateMixing(
-        schedule.user_peptide.vial_size_mcg / 1000,
+        schedule.user_peptide.vial_size_mcg,
         schedule.user_peptide.bac_water_ml,
         schedule.dose_mcg
       );

@@ -34,8 +34,6 @@ const DEFAULT_TIMES: Record<string, string[]> = {
   three_daily: ["08:00", "14:00", "20:00"],
   every_other_day: ["08:00"],
   weekly: ["08:00"],
-  biweekly: ["08:00"],
-  monthly: ["08:00"],
   custom: ["08:00"],
 };
 
@@ -126,7 +124,7 @@ export function NewScheduleForm() {
     setValue("times_of_day", defaultTimes);
 
     // Set/clear days_of_week based on frequency
-    if (frequency === "weekly" || frequency === "biweekly") {
+    if (frequency === "weekly") {
       if (!daysOfWeek || daysOfWeek.length === 0) {
         setValue("days_of_week", [1]); // Default Monday
       }
@@ -200,7 +198,7 @@ export function NewScheduleForm() {
     }
   }
 
-  const isWeeklyType = frequency === "weekly" || frequency === "biweekly";
+  const isWeeklyType = frequency === "weekly";
   const isCustom = frequency === "custom";
 
   return (
@@ -311,11 +309,11 @@ export function NewScheduleForm() {
             )}
           </div>
 
-          {/* Day of week selector for weekly/biweekly */}
+          {/* Day of week selector for weekly */}
           {isWeeklyType && (
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
-                Day{frequency === "biweekly" ? "" : "(s)"} of Week
+                Day(s) of Week
               </Label>
               <div className="flex gap-1.5">
                 {DAY_LABELS.map((label, i) => {

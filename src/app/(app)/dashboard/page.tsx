@@ -39,13 +39,13 @@ export default async function DashboardPage() {
     .gte("taken_at", `${today}T00:00:00`)
     .lte("taken_at", `${today}T23:59:59`)) as { data: any[] | null; error: any };
 
+  // M4 FIX: Include all statuses for accurate adherence calculation
   const { data: recentLogs } = (await supabase
     .from("dose_logs")
     .select("taken_at, status")
     .eq("user_id", user!.id)
-    .eq("status", "taken")
     .order("taken_at", { ascending: false })
-    .limit(30)) as { data: any[] | null; error: any };
+    .limit(60)) as { data: any[] | null; error: any };
 
   const { data: activeVials } = (await supabase
     .from("user_peptides")

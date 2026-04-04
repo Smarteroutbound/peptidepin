@@ -3,7 +3,8 @@
 -- Without this, deleting a log (for undo or corrections) permanently loses the deducted amount
 
 CREATE OR REPLACE FUNCTION public.restore_dose()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER AS $$
 BEGIN
   -- Only restore if the dose was "taken" (skipped doses don't deduct)
   IF OLD.status = 'taken' THEN
