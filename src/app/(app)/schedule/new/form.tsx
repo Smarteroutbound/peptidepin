@@ -13,13 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Loader2, Save, Syringe, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { FREQUENCIES } from "@/lib/constants";
@@ -209,24 +202,20 @@ export function NewScheduleForm() {
           <CardTitle className="text-base">Peptide</CardTitle>
         </CardHeader>
         <CardContent>
-          <Select
+          <select
             value={selectedVialId}
-            onValueChange={(v) => {
-              if (v)
-                setValue("user_peptide_id", v, { shouldValidate: true });
-            }}
+            onChange={(e) =>
+              setValue("user_peptide_id", e.target.value, { shouldValidate: true })
+            }
+            className="flex h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
-            <SelectTrigger className="touch-target">
-              <SelectValue placeholder="Select a vial" />
-            </SelectTrigger>
-            <SelectContent>
-              {userPeptides.map((vial: any) => (
-                <SelectItem key={vial.id} value={vial.id}>
-                  {vial.custom_label || vial.peptide?.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="">Select a vial</option>
+            {userPeptides.map((vial: any) => (
+              <option key={vial.id} value={vial.id}>
+                {vial.custom_label || vial.peptide?.name} — {(vial.vial_size_mcg / 1000).toFixed(0)}mg
+              </option>
+            ))}
+          </select>
           {errors.user_peptide_id && (
             <p className="mt-1.5 text-xs text-destructive">
               {errors.user_peptide_id.message}
@@ -282,26 +271,19 @@ export function NewScheduleForm() {
           {/* Frequency */}
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Frequency</Label>
-            <Select
+            <select
               value={frequency}
-              onValueChange={(v) => {
-                if (v)
-                  setValue("frequency", v as CreateScheduleInput["frequency"], {
-                    shouldValidate: true,
-                  });
-              }}
+              onChange={(e) =>
+                setValue("frequency", e.target.value as CreateScheduleInput["frequency"], { shouldValidate: true })
+              }
+              className="flex h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
-              <SelectTrigger className="touch-target">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FREQUENCIES.map((f) => (
-                  <SelectItem key={f.value} value={f.value}>
-                    {f.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {FREQUENCIES.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
             {errors.frequency && (
               <p className="text-xs text-destructive">
                 {errors.frequency.message}
