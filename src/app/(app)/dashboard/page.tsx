@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Dashboard",
@@ -11,10 +12,12 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login?redirect=/dashboard");
+
   const { data: profile } = (await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single()) as { data: any; error: any };
 
   const { data: todaysDoses } = (await supabase
@@ -28,14 +31,14 @@ export default async function DashboardPage() {
       )
     `
     )
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .eq("is_active", true)) as { data: any[] | null; error: any };
 
   const today = new Date().toISOString().split("T")[0];
   const { data: todaysLogs } = (await supabase
     .from("dose_logs")
     .select("*")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .gte("taken_at", `${today}T00:00:00`)
     .lte("taken_at", `${today}T23:59:59`)) as { data: any[] | null; error: any };
 
@@ -43,14 +46,14 @@ export default async function DashboardPage() {
   const { data: recentLogs } = (await supabase
     .from("dose_logs")
     .select("taken_at, status")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .order("taken_at", { ascending: false })
     .limit(60)) as { data: any[] | null; error: any };
 
   const { data: activeVials } = (await supabase
     .from("user_peptides")
     .select("*, peptide:peptides(name)")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .eq("is_active", true)) as { data: any[] | null; error: any };
 
   return (

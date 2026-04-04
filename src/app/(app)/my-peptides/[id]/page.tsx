@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MixingCalculator } from "@/components/calculator/mixing-calculator";
@@ -44,11 +44,14 @@ export default async function VialDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login?redirect=/my-peptides");
 
   const { data: vial } = (await supabase
     .from("user_peptides")
     .select("*, peptide:peptides(*)")
     .eq("id", id)
+    .eq("user_id", user.id)
     .single()) as { data: any; error: any };
 
   if (!vial) notFound();

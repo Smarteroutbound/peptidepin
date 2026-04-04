@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronRight, FlaskConical, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { formatNumber, mcgToMg } from "@/lib/calculations";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "My Vials",
@@ -16,10 +17,12 @@ export default async function MyPeptidesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login?redirect=/my-peptides");
+
   const { data: userPeptides } = (await supabase
     .from("user_peptides")
     .select("*, peptide:peptides(name, slug, category)")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .order("is_active", { ascending: false })
     .order("created_at", { ascending: false })) as { data: any[] | null; error: any };
 

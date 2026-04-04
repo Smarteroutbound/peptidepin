@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatNumber, mcgToMg } from "@/lib/calculations";
 import { EmptyState } from "@/components/shared/empty-state";
 import { History, Clock, Syringe } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "History",
@@ -12,6 +13,8 @@ export const metadata = {
 export default async function HistoryPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login?redirect=/history");
 
   const { data: logs } = (await supabase
     .from("dose_logs")
@@ -23,7 +26,7 @@ export default async function HistoryPage() {
         peptide:peptides(name, category, unit_type)
       )
     `)
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .order("taken_at", { ascending: false })
     .limit(100)) as { data: any[] | null; error: any };
 

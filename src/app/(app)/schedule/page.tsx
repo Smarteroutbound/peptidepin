@@ -3,6 +3,7 @@ import { Plus, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ScheduleList } from "@/components/schedules/schedule-list";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Schedule",
@@ -13,6 +14,8 @@ export default async function SchedulePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login?redirect=/schedule");
 
   const { data: schedules } = (await supabase
     .from("dose_schedules")
@@ -28,7 +31,7 @@ export default async function SchedulePage() {
       )
     `
     )
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .order("is_active", { ascending: false })
     .order("created_at", { ascending: false })) as {
     data: any[] | null;
