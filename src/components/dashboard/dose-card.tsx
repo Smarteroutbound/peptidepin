@@ -1,150 +1,141 @@
 "use client";
 
 import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
-import { formatDose } from "@/lib/calculations";
-import { Check, Clock, SkipForward, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { useLogDose } from "@/hooks/use-log-dose";
+import { Check, X, Syringe, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DoseCardProps {
   dose: {
     id: string;
+    scheduleId: string;
+    userPeptideId: string;
     peptideName: string;
     doseMcg: number;
     scheduledTime: string;
-    status: "pending" | "taken" | "skipped";
-    scheduleId: string;
-    userPeptideId: string;
+    status: "pending" | "taken" | "skipped" | "missed";
+    logId: string | null;
+    syringeUnits: number;
+    isGLP1: boolean;
   };
 }
 
+function formatTime(time: string) {
+  const [h, m] = time.split(":");
+  const hour = parseInt(h);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${h12}:${m} ${ampm}`;
+}
+
 export function DoseCard({ dose }: DoseCardProps) {
-  const [status, setStatus] = useState(dose.status);
-  const [loading, setLoading] = useState(false);
+  const { logDose, isLogging } = useLogDose();
+  const [localStatus, setLocalStatus] = useState(dose.status);
 
-  async function logDose(newStatus: "taken" | "skipped") {
-    setLoading(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const doseLabel = dose.isGLP1 && dose.doseMcg >= 1000
+    ? `${(dose.doseMcg / 1000).toFixed(1)} mg`
+    : `${dose.doseMcg} mcg`;
 
-    if (!user) return;
-
-    const { error } = await (supabase.from("dose_logs") as any).insert({
-      user_id: user.id,
+  async function handleTake() {
+    const today = new Date().toISOString().split("T")[0];
+    const result = await logDose({
       user_peptide_id: dose.userPeptideId,
       schedule_id: dose.scheduleId,
       dose_mcg: dose.doseMcg,
-      scheduled_at: new Date().toISOString(),
-      status: newStatus,
+      // BUG FIX: Use actual scheduled time, not current time
+      scheduled_at: `${today}T${dose.scheduledTime}:00`,
+      status: "taken",
     });
-
-    if (error) {
-      toast.error("Failed to log dose");
-      setLoading(false);
-      return;
-    }
-
-    setStatus(newStatus);
-    setLoading(false);
-
-    if (newStatus === "taken") {
-      toast.success(`${dose.peptideName} dose logged`);
-    }
+    if (result) setLocalStatus("taken");
   }
 
-  const timeFormatted = formatTime(dose.scheduledTime);
-  const isTaken = status === "taken";
-  const isSkipped = status === "skipped";
-  const isDone = isTaken || isSkipped;
+  async function handleSkip() {
+    const today = new Date().toISOString().split("T")[0];
+    const result = await logDose({
+      user_peptide_id: dose.userPeptideId,
+      schedule_id: dose.scheduleId,
+      dose_mcg: dose.doseMcg,
+      scheduled_at: `${today}T${dose.scheduledTime}:00`,
+      status: "skipped",
+    });
+    if (result) setLocalStatus("skipped");
+  }
+
+  const isDone = localStatus !== "pending";
 
   return (
-    <motion.div
-      layout
-      className={cn(
-        "flex items-center justify-between rounded-lg border p-3 transition-all",
-        isTaken && "border-success/30 bg-success/5",
-        isSkipped && "border-muted bg-muted/30 opacity-60"
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <div
-          className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-full",
-            isTaken
-              ? "bg-success text-success-foreground"
-              : isSkipped
-              ? "bg-muted text-muted-foreground"
-              : "bg-primary/10 text-primary"
-          )}
-        >
-          {isTaken ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            <Clock className="h-4 w-4" />
-          )}
-        </div>
-        <div>
-          <p
-            className={cn(
-              "text-sm font-medium",
-              isDone && "line-through opacity-70"
-            )}
-          >
-            {dose.peptideName}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {formatDose(dose.doseMcg)} &middot; {timeFormatted}
-          </p>
-        </div>
-      </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={localStatus}
+        initial={{ opacity: 0.8 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Card className={isDone ? "opacity-60" : ""}>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                  localStatus === "taken"
+                    ? "bg-primary/10 text-primary"
+                    : localStatus === "skipped"
+                    ? "bg-muted text-muted-foreground"
+                    : "bg-muted/50 text-muted-foreground/50"
+                }`}>
+                  {localStatus === "taken" ? (
+                    <Check className="h-4 w-4" />
+                  ) : localStatus === "skipped" ? (
+                    <X className="h-4 w-4" />
+                  ) : (
+                    <Syringe className="h-4 w-4" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{dose.peptideName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatTime(dose.scheduledTime)} · {doseLabel}
+                    {dose.syringeUnits > 0 && !isDone && (
+                      <span className="text-primary"> · {dose.syringeUnits} units</span>
+                    )}
+                  </p>
+                </div>
+              </div>
 
-      <AnimatePresence mode="wait">
-        {!isDone && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="flex items-center gap-1.5"
-          >
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 px-2 text-muted-foreground"
-              onClick={() => logDose("skipped")}
-              disabled={loading}
-            >
-              <SkipForward className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              size="sm"
-              className="h-8 touch-target"
-              onClick={() => logDose("taken")}
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <>
-                  <Check className="mr-1 h-3.5 w-3.5" />
-                  Take
-                </>
+              {!isDone && (
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs text-muted-foreground"
+                    onClick={handleSkip}
+                    disabled={isLogging}
+                  >
+                    Skip
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={handleTake}
+                    disabled={isLogging}
+                  >
+                    {isLogging ? <Loader2 className="h-3 w-3 animate-spin" /> : "Take"}
+                  </Button>
+                </div>
               )}
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
 
-function formatTime(timeStr: string): string {
-  const [hours, minutes] = timeStr.split(":").map(Number);
-  const period = hours >= 12 ? "PM" : "AM";
-  const displayHours = hours % 12 || 12;
-  return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
+              {isDone && (
+                <span className={`text-xs font-medium ${
+                  localStatus === "taken" ? "text-primary" : "text-muted-foreground"
+                }`}>
+                  {localStatus}
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </AnimatePresence>
+  );
 }

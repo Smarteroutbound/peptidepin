@@ -1,100 +1,108 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { Flame } from "lucide-react";
+import { useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Flame, Check, X } from "lucide-react";
 
 interface AdherenceStreakProps {
-  logs: { taken_at: string; status: string }[];
+  logs: any[];
 }
 
 export function AdherenceStreak({ logs }: AdherenceStreakProps) {
-  // Build last 7 days
-  const days = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const { days, currentStreak, totalThisWeek } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split("T")[0];
-
-    const hasDose = logs.some((log) => {
-      const logDate = new Date(log.taken_at).toISOString().split("T")[0];
-      return logDate === dateStr;
-    });
-
-    days.push({
-      date,
-      label: date.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 2),
-      isToday: i === 0,
-      hasDose,
-    });
-  }
-
-  // Calculate current streak
-  let streak = 0;
-  for (let i = days.length - 1; i >= 0; i--) {
-    if (days[i].hasDose) {
-      streak++;
-    } else if (!days[i].isToday) {
-      break;
+    // Build 14-day map
+    const dayMap = new Map<string, { taken: number; total: number }>();
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      dayMap.set(key, { taken: 0, total: 0 });
     }
-  }
+
+    // Count logs per day
+    for (const log of logs) {
+      const date = new Date(log.taken_at).toISOString().split("T")[0];
+      const entry = dayMap.get(date);
+      if (entry) {
+        entry.total++;
+        if (log.status === "taken") entry.taken++;
+      }
+    }
+
+    const days = Array.from(dayMap.entries()).map(([date, stats]) => ({
+      date,
+      label: new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "narrow" }),
+      dayNum: new Date(date + "T12:00:00").getDate(),
+      hasDoses: stats.total > 0,
+      allTaken: stats.total > 0 && stats.taken === stats.total,
+      someTaken: stats.taken > 0,
+    }));
+
+    // Calculate streak
+    let streak = 0;
+    for (let i = days.length - 1; i >= 0; i--) {
+      if (!days[i].hasDoses) continue; // skip days with no schedules
+      if (days[i].allTaken) streak++;
+      else break;
+    }
+
+    // This week total
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const weekKey = weekStart.toISOString().split("T")[0];
+    let weekTaken = 0;
+    let weekTotal = 0;
+    for (const [date, stats] of dayMap) {
+      if (date >= weekKey) {
+        weekTaken += stats.taken;
+        weekTotal += stats.total;
+      }
+    }
+
+    return { days, currentStreak: streak, totalThisWeek: { taken: weekTaken, total: weekTotal } };
+  }, [logs]);
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-base">7-Day Streak</CardTitle>
-        {streak > 0 && (
-          <div className="flex items-center gap-1 text-sm font-medium text-primary">
-            <Flame className="h-4 w-4" />
-            {streak} day{streak !== 1 ? "s" : ""}
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
-          {days.map((day, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            <Flame className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-medium">
+              {currentStreak} day streak
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {totalThisWeek.taken}/{totalThisWeek.total} this week
+          </span>
+        </div>
+
+        <div className="flex gap-1 justify-between">
+          {days.map((day) => (
+            <div key={day.date} className="flex flex-col items-center gap-1">
               <div
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all",
-                  day.hasDose
+                className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] ${
+                  day.allTaken
                     ? "bg-primary text-primary-foreground"
-                    : day.isToday
-                    ? "border-2 border-dashed border-primary/50 text-muted-foreground"
-                    : "bg-muted text-muted-foreground"
-                )}
+                    : day.someTaken
+                    ? "bg-primary/20 text-primary"
+                    : day.hasDoses
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-muted text-muted-foreground/30"
+                }`}
               >
-                {day.hasDose ? (
-                  <svg
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+                {day.allTaken ? (
+                  <Check className="h-3 w-3" />
+                ) : day.hasDoses && !day.someTaken ? (
+                  <X className="h-3 w-3" />
                 ) : (
-                  day.date.getDate()
+                  day.dayNum
                 )}
               </div>
-              <span
-                className={cn(
-                  "text-[10px]",
-                  day.isToday
-                    ? "font-medium text-primary"
-                    : "text-muted-foreground"
-                )}
-              >
-                {day.label}
-              </span>
+              <span className="text-[9px] text-muted-foreground">{day.label}</span>
             </div>
           ))}
         </div>

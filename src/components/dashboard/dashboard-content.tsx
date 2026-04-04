@@ -1,244 +1,205 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMemo } from "react";
+import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DoseCard } from "./dose-card";
 import { AdherenceStreak } from "./adherence-streak";
-import Link from "next/link";
-import {
-  Calculator,
-  FlaskConical,
-  Plus,
-  CalendarPlus,
-} from "lucide-react";
-import type { Database } from "@/types/database";
-
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-type DoseLog = Database["public"]["Tables"]["dose_logs"]["Row"];
+import { NextDoseHero } from "./next-dose-hero";
+import { calculateMixing, formatNumber } from "@/lib/calculations";
+import { Calculator, Plus } from "lucide-react";
 
 interface DashboardContentProps {
-  profile: Profile | null;
+  profile: any;
   schedules: any[];
-  todaysLogs: DoseLog[];
-  recentLogs: { taken_at: string; status: string }[];
-  activeVials: any[];
+  todayLogs: any[];
+  recentLogs: any[];
+  vials: any[];
+}
+
+interface DoseItem {
+  id: string;
+  scheduleId: string;
+  userPeptideId: string;
+  peptideName: string;
+  doseMcg: number;
+  scheduledTime: string;
+  status: "pending" | "taken" | "skipped" | "missed";
+  logId: string | null;
+  syringeUnits: number;
+  isGLP1: boolean;
+}
+
+/**
+ * CRITICAL BUG FIX: Match logs by schedule_id AND scheduled_at time,
+ * not just schedule_id. Previous version marked all time slots as done
+ * when any single slot was logged for a twice-daily schedule.
+ */
+function buildTodaysDoses(schedules: any[], logs: any[]): DoseItem[] {
+  const today = new Date().toISOString().split("T")[0];
+  const items: DoseItem[] = [];
+
+  for (const schedule of schedules) {
+    if (!schedule.is_active) continue;
+
+    const peptideName =
+      schedule.user_peptide?.custom_label ||
+      schedule.user_peptide?.peptide?.name ||
+      "Unknown";
+    const isGLP1 = schedule.user_peptide?.peptide?.category === "weight-loss";
+
+    let syringeUnits = 0;
+    if (schedule.user_peptide?.vial_size_mcg && schedule.user_peptide?.bac_water_ml) {
+      const result = calculateMixing(
+        schedule.user_peptide.vial_size_mcg / 1000,
+        schedule.user_peptide.bac_water_ml,
+        schedule.dose_mcg
+      );
+      syringeUnits = Math.round(result.syringeUnits);
+    }
+
+    const times = schedule.times_of_day || [];
+    for (const time of times) {
+      // BUG FIX: Match by schedule_id AND time slot (hour:minute)
+      const matchingLog = logs.find((l) => {
+        if (l.schedule_id !== schedule.id) return false;
+        if (!l.scheduled_at) return false;
+        const logTime = new Date(l.scheduled_at);
+        const logHHMM = `${String(logTime.getHours()).padStart(2, "0")}:${String(logTime.getMinutes()).padStart(2, "0")}`;
+        return logHHMM === time;
+      });
+
+      items.push({
+        id: `${schedule.id}-${time}`,
+        scheduleId: schedule.id,
+        userPeptideId: schedule.user_peptide_id,
+        peptideName,
+        doseMcg: schedule.dose_mcg,
+        scheduledTime: time,
+        status: matchingLog ? matchingLog.status : "pending",
+        logId: matchingLog?.id || null,
+        syringeUnits,
+        isGLP1,
+      });
+    }
+  }
+
+  items.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
+  return items;
 }
 
 export function DashboardContent({
   profile,
   schedules,
-  todaysLogs,
+  todayLogs,
   recentLogs,
-  activeVials,
+  vials,
 }: DashboardContentProps) {
-  const greeting = getGreeting();
-  const displayName = profile?.display_name?.split(" ")[0] || "there";
+  const doses = useMemo(
+    () => buildTodaysDoses(schedules, todayLogs),
+    [schedules, todayLogs]
+  );
 
-  // Build today's dose list from schedules
-  const todaysDoseItems = buildTodaysDoses(schedules, todaysLogs);
-  const completedCount = todaysDoseItems.filter(
-    (d) => d.status === "taken"
-  ).length;
-  const totalCount = todaysDoseItems.length;
+  const completed = doses.filter((d) => d.status !== "pending").length;
+  const total = doses.length;
+  const pendingDoses = doses.filter((d) => d.status === "pending");
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nextDose = pendingDoses.find((d) => {
+    const [h, m] = d.scheduledTime.split(":");
+    return parseInt(h) * 60 + parseInt(m) >= nowMinutes - 30;
+  }) || pendingDoses[0] || null;
+
+  const greeting = profile?.display_name
+    ? `Hey, ${profile.display_name.split(" ")[0]}`
+    : "Hey there";
+
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
 
   return (
     <div className="space-y-5">
-      {/* Greeting */}
       <div>
-        <h2 className="font-heading text-xl font-semibold">
-          {greeting}, {displayName}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
+        <h1 className="text-xl font-heading font-bold">{greeting}</h1>
+        <p className="text-sm text-muted-foreground">{dateStr}</p>
       </div>
 
-      {/* Today's Doses */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base">Today&apos;s Doses</CardTitle>
-          {totalCount > 0 && (
-            <Badge variant={completedCount === totalCount ? "default" : "secondary"}>
-              {completedCount}/{totalCount}
-            </Badge>
-          )}
-        </CardHeader>
-        <CardContent>
-          {todaysDoseItems.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                No doses scheduled for today
-              </p>
-              <Link href="/schedule/new">
-                <Button variant="outline" size="sm">
-                  <CalendarPlus className="mr-1.5 h-4 w-4" />
-                  Create schedule
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {todaysDoseItems.map((dose) => (
-                <DoseCard key={dose.id} dose={dose} />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <NextDoseHero
+        dose={nextDose ? {
+          scheduleId: nextDose.scheduleId,
+          userPeptideId: nextDose.userPeptideId,
+          peptideName: nextDose.peptideName,
+          doseMcg: nextDose.doseMcg,
+          syringeUnits: nextDose.syringeUnits,
+          scheduledTime: nextDose.scheduledTime,
+          isGLP1: nextDose.isGLP1,
+        } : null}
+      />
 
-      {/* Adherence Streak */}
-      {recentLogs.length > 0 && (
-        <AdherenceStreak logs={recentLogs} />
+      {total > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground">Today&apos;s Doses</h2>
+            <Badge variant="outline" className="text-[10px]">{completed}/{total}</Badge>
+          </div>
+          <div className="space-y-2">
+            {doses.map((dose) => (
+              <DoseCard key={dose.id} dose={dose} />
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/calculator">
-          <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Calculator className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Calculator</p>
-                <p className="text-xs text-muted-foreground">Mix a peptide</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/my-peptides/new">
-          <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20">
-                <Plus className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Add Vial</p>
-                <p className="text-xs text-muted-foreground">Track a peptide</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
+      {recentLogs.length > 0 && <AdherenceStreak logs={recentLogs} />}
 
-      {/* Active Vials Summary */}
-      {activeVials.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FlaskConical className="h-4 w-4 text-primary" />
-              Active Vials
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {activeVials.map((vial: any) => {
-                const remaining = vial.remaining_mcg || 0;
-                const total = vial.vial_size_mcg;
-                const percent = total > 0 ? (remaining / total) * 100 : 0;
-                const isLow = percent < 20;
-
-                return (
-                  <Link
-                    key={vial.id}
-                    href={`/my-peptides/${vial.id}`}
-                    className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                  >
-                    <div>
-                      <p className="text-sm font-medium">
-                        {vial.peptide?.name || vial.custom_label}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {(remaining / 1000).toFixed(1)} mg remaining
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-16 overflow-hidden rounded-full bg-muted">
+      {vials.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Active Vials</h2>
+          <div className="grid grid-cols-2 gap-2">
+            {vials.slice(0, 4).map((vial: any) => {
+              const pct = vial.vial_size_mcg > 0 ? Math.round((vial.remaining_mcg / vial.vial_size_mcg) * 100) : 0;
+              const name = vial.custom_label || vial.peptide?.name || "Unknown";
+              return (
+                <Link href={`/my-peptides/${vial.id}`} key={vial.id}>
+                  <Card className="hover:border-primary/30 transition-colors">
+                    <CardContent className="p-3">
+                      <p className="text-xs font-medium truncate">{name}</p>
+                      <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all ${
-                            isLow ? "bg-destructive" : "bg-primary"
-                          }`}
-                          style={{ width: `${Math.max(percent, 2)}%` }}
+                          className={`h-full rounded-full ${pct < 20 ? "bg-destructive" : pct < 50 ? "bg-amber-500" : "bg-primary"}`}
+                          style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span
-                        className={`text-xs font-medium ${
-                          isLow ? "text-destructive" : "text-muted-foreground"
-                        }`}
-                      >
-                        {Math.round(percent)}%
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                      <p className="text-[10px] text-muted-foreground mt-1">{pct}% · {formatNumber(vial.remaining_mcg)} mcg</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <Link href="/calculator">
+          <Button variant="outline" className="w-full touch-target text-sm">
+            <Calculator className="mr-1.5 h-3.5 w-3.5" />
+            Calculator
+          </Button>
+        </Link>
+        <Link href="/my-peptides/new">
+          <Button variant="outline" className="w-full touch-target text-sm">
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Add Vial
+          </Button>
+        </Link>
+      </div>
     </div>
   );
-}
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
-interface TodayDose {
-  id: string;
-  peptideName: string;
-  doseMcg: number;
-  scheduledTime: string;
-  status: "pending" | "taken" | "skipped";
-  scheduleId: string;
-  userPeptideId: string;
-}
-
-function buildTodaysDoses(schedules: any[], logs: DoseLog[]): TodayDose[] {
-  const doses: TodayDose[] = [];
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-
-  for (const schedule of schedules) {
-    // Check if schedule applies to today
-    if (schedule.days_of_week && !schedule.days_of_week.includes(dayOfWeek)) {
-      continue;
-    }
-
-    const peptideName =
-      schedule.user_peptide?.peptide?.name ||
-      schedule.user_peptide?.custom_label ||
-      "Unknown";
-
-    for (const time of schedule.times_of_day || []) {
-      const id = `${schedule.id}-${time}`;
-
-      // Check if there's a log for this dose
-      const log = logs.find(
-        (l) => l.schedule_id === schedule.id
-      );
-
-      doses.push({
-        id,
-        peptideName,
-        doseMcg: schedule.dose_mcg,
-        scheduledTime: time,
-        status: log ? (log.status as "taken" | "skipped") : "pending",
-        scheduleId: schedule.id,
-        userPeptideId: schedule.user_peptide_id,
-      });
-    }
-  }
-
-  // Sort by time
-  doses.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
-  return doses;
 }

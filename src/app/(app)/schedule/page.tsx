@@ -1,11 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent } from "@/components/ui/card";
+import { Plus, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Clock, CalendarClock } from "lucide-react";
 import Link from "next/link";
-import { formatNumber } from "@/lib/calculations";
-import { FREQUENCIES } from "@/lib/constants";
+import { ScheduleList } from "@/components/schedules/schedule-list";
 
 export const metadata = {
   title: "Schedule",
@@ -24,13 +21,19 @@ export default async function SchedulePage() {
       *,
       user_peptide:user_peptides(
         custom_label,
+        vial_size_mcg,
+        bac_water_ml,
+        dose_per_injection_mcg,
         peptide:peptides(name)
       )
     `
     )
     .eq("user_id", user!.id)
     .order("is_active", { ascending: false })
-    .order("created_at", { ascending: false })) as { data: any[] | null; error: any };
+    .order("created_at", { ascending: false })) as {
+    data: any[] | null;
+    error: any;
+  };
 
   return (
     <div className="space-y-4">
@@ -54,50 +57,7 @@ export default async function SchedulePage() {
       )}
 
       {schedules && schedules.length > 0 && (
-        <div className="space-y-2">
-          {schedules.map((schedule: any) => {
-            const peptideName =
-              schedule.user_peptide?.peptide?.name ||
-              schedule.user_peptide?.custom_label ||
-              "Unknown";
-            const freqLabel =
-              FREQUENCIES.find((f) => f.value === schedule.frequency)?.label ||
-              schedule.frequency;
-
-            return (
-              <Card key={schedule.id}>
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{peptideName}</p>
-                        {!schedule.is_active && (
-                          <Badge variant="outline" className="text-[10px]">
-                            Paused
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {formatNumber(schedule.dose_mcg)} mcg &middot;{" "}
-                        {freqLabel}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
-                      {(schedule.times_of_day || [])
-                        .map((t: string) => {
-                          const [h, m] = t.split(":").map(Number);
-                          const period = h >= 12 ? "PM" : "AM";
-                          return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${period}`;
-                        })
-                        .join(", ")}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <ScheduleList schedules={schedules} />
       )}
     </div>
   );

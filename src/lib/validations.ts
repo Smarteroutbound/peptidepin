@@ -40,7 +40,7 @@ export const createScheduleSchema = z.object({
   ]),
   times_of_day: z.array(z.string().regex(/^\d{2}:\d{2}$/, "Use HH:MM format")).min(1, "At least one time required"),
   days_of_week: z.array(z.number().min(0).max(6)).optional(),
-  is_active: z.boolean().default(true),
+  is_active: z.boolean().optional(),
 });
 
 export const updateScheduleSchema = z.object({

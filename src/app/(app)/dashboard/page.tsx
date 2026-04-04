@@ -57,9 +57,9 @@ export default async function DashboardPage() {
     <DashboardContent
       profile={profile}
       schedules={todaysDoses || []}
-      todaysLogs={todaysLogs || []}
+      todayLogs={todaysLogs || []}
       recentLogs={recentLogs || []}
-      activeVials={activeVials || []}
+      vials={activeVials || []}
     />
   );
 }

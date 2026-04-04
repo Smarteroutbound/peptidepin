@@ -207,6 +207,46 @@ export default function SettingsPage() {
 
       <Separator />
 
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <h3 className="text-sm font-medium">Data</h3>
+          <Button
+            variant="outline"
+            className="w-full touch-target text-sm"
+            onClick={async () => {
+              const { data: vials } = await (supabase.from("user_peptides") as any)
+                .select("*, peptide:peptides(name)")
+                .eq("user_id", profile!.id);
+              const { data: schedules } = await (supabase.from("dose_schedules") as any)
+                .select("*")
+                .eq("user_id", profile!.id);
+              const { data: doseLogs } = await (supabase.from("dose_logs") as any)
+                .select("*")
+                .eq("user_id", profile!.id);
+
+              const exportData = {
+                exported_at: new Date().toISOString(),
+                profile: { display_name: displayName, unit_preference: unitPref },
+                vials: vials || [],
+                schedules: schedules || [],
+                dose_logs: doseLogs || [],
+              };
+
+              const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `peptidepin-export-${new Date().toISOString().split("T")[0]}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success("Data exported");
+            }}
+          >
+            Export All Data (JSON)
+          </Button>
+        </CardContent>
+      </Card>
+
       <Button
         variant="ghost"
         className="w-full touch-target text-destructive hover:text-destructive"

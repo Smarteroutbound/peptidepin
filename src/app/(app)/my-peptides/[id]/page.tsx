@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { MixingCalculator } from "@/components/calculator/mixing-calculator";
 import {
   formatNumber,
@@ -10,6 +9,7 @@ import {
   calculateDosesRemaining,
 } from "@/lib/calculations";
 import {
+  AlertTriangle,
   CalendarPlus,
   Clock,
   Droplets,
@@ -17,6 +17,8 @@ import {
   Syringe,
 } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { VialActions } from "./vial-actions";
 
 export async function generateMetadata({
   params,
@@ -59,6 +61,24 @@ export default async function VialDetailPage({
     remaining,
     vial.dose_per_injection_mcg || 0
   );
+  const isLow = percent < 20 && percent > 0 && vial.is_active;
+
+  // Expiry calculation
+  const expiryDate = vial.date_reconstituted
+    ? new Date(
+        new Date(vial.date_reconstituted + "T00:00:00").getTime() +
+          28 * 24 * 60 * 60 * 1000
+      )
+    : null;
+  const now = new Date();
+  const daysUntilExpiry = expiryDate
+    ? Math.ceil(
+        (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      )
+    : null;
+  const isExpiringSoon =
+    daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+  const isExpired = daysUntilExpiry !== null && daysUntilExpiry <= 0;
 
   // Recent logs
   const { data: recentLogs } = (await supabase
@@ -71,21 +91,48 @@ export default async function VialDetailPage({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <h2 className="font-heading text-xl font-bold">
-            {vial.custom_label || peptide?.name}
-          </h2>
-          <Badge
-            variant={vial.is_active ? "default" : "secondary"}
-          >
-            {vial.is_active ? "Active" : "Finished"}
-          </Badge>
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="font-heading text-xl font-bold">
+              {vial.custom_label || peptide?.name}
+            </h2>
+            <Badge variant={vial.is_active ? "default" : "secondary"}>
+              {vial.is_active ? "Active" : "Finished"}
+            </Badge>
+          </div>
+          {vial.custom_label && peptide?.name && (
+            <p className="text-sm text-muted-foreground">{peptide.name}</p>
+          )}
         </div>
-        {vial.custom_label && peptide?.name && (
-          <p className="text-sm text-muted-foreground">{peptide.name}</p>
-        )}
+        <VialActions vial={vial} />
       </div>
+
+      {/* Low stock banner */}
+      {isLow && vial.is_active && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            Low stock &mdash; {Math.round(percent)}% remaining ({formatNumber(mcgToMg(remaining))} mg)
+          </span>
+        </div>
+      )}
+
+      {/* Expiry warning */}
+      {vial.is_active && isExpired && (
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>This vial has expired. Reconstituted peptides are typically stable for 28 days.</span>
+        </div>
+      )}
+      {vial.is_active && isExpiringSoon && !isExpired && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            Expiring soon &mdash; {daysUntilExpiry} day{daysUntilExpiry !== 1 ? "s" : ""} remaining
+          </span>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
@@ -105,7 +152,7 @@ export default async function VialDetailPage({
           icon={<Droplets className="h-4 w-4" />}
           label="Concentration"
           value={`${formatNumber(vial.concentration_mcg_per_ml || 0)}`}
-          sub="mcg/ml"
+          sub="mcg/mL"
         />
       </div>
 
@@ -124,7 +171,7 @@ export default async function VialDetailPage({
         <Link href={`/schedule/new?vial=${id}`}>
           <Button variant="outline" className="w-full touch-target">
             <CalendarPlus className="mr-1.5 h-4 w-4" />
-            Schedule
+            Add to Schedule
           </Button>
         </Link>
         <Link href="/history">
@@ -191,12 +238,22 @@ export default async function VialDetailPage({
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground">
               Reconstituted on{" "}
-              {new Date(vial.date_reconstituted).toLocaleDateString("en-US", {
+              {new Date(vial.date_reconstituted + "T00:00:00").toLocaleDateString("en-US", {
                 month: "long",
                 day: "numeric",
                 year: "numeric",
               })}
-              {vial.notes && ` — ${vial.notes}`}
+              {expiryDate && (
+                <>
+                  {" "}&middot; Expires{" "}
+                  {expiryDate.toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </>
+              )}
+              {vial.notes && <> &mdash; {vial.notes}</>}
             </p>
           </CardContent>
         </Card>
