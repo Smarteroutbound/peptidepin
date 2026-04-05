@@ -43,9 +43,10 @@ export default async function DashboardPage() {
     .lte("taken_at", `${today}T23:59:59`)) as { data: any[] | null; error: any };
 
   // M4 FIX: Include all statuses for accurate adherence calculation
+  // Also include schedule_id and dose_mcg for titration advance detection
   const { data: recentLogs } = (await supabase
     .from("dose_logs")
-    .select("taken_at, status")
+    .select("taken_at, status, schedule_id, dose_mcg")
     .eq("user_id", user.id)
     .order("taken_at", { ascending: false })
     .limit(60)) as { data: any[] | null; error: any };

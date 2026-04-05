@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { MoreVertical, Pause, Play, Trash2, Clock } from "lucide-react";
+import { EditScheduleSheet } from "./edit-schedule-sheet";
+import { MoreVertical, Pause, Play, Trash2, Clock, Pencil } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,7 @@ export function ScheduleList({ schedules }: ScheduleListProps) {
   const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editSchedule, setEditSchedule] = useState<any | null>(null);
 
   const active = schedules.filter((s) => s.is_active);
   const paused = schedules.filter((s) => !s.is_active);
@@ -103,6 +104,9 @@ export function ScheduleList({ schedules }: ScheduleListProps) {
                 <MoreVertical className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditSchedule(schedule)}>
+                  <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => togglePause(schedule.id, schedule.is_active)}>
                   {schedule.is_active ? (
                     <><Pause className="mr-2 h-3.5 w-3.5" /> Pause</>
@@ -150,6 +154,12 @@ export function ScheduleList({ schedules }: ScheduleListProps) {
         variant="destructive"
         onConfirm={handleDelete}
         loading={deleting}
+      />
+
+      <EditScheduleSheet
+        schedule={editSchedule}
+        open={!!editSchedule}
+        onOpenChange={(open) => !open && setEditSchedule(null)}
       />
     </>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { DoseCard } from "./dose-card";
 import { AdherenceStreak } from "./adherence-streak";
 import { NextDoseHero } from "./next-dose-hero";
+import { ManualLogSheet } from "./manual-log-sheet";
+import { TitrationAdvanceBanner } from "./titration-advance-banner";
+import { ReorderAlerts } from "./reorder-alerts";
 import { calculateMixing, formatNumber } from "@/lib/calculations";
-import { Calculator, Plus } from "lucide-react";
+import { scheduleTodayNotifications } from "@/lib/notifications";
+import { Calculator, Plus, ClipboardList } from "lucide-react";
 
 interface DashboardContentProps {
   profile: any;
@@ -97,6 +101,26 @@ export function DashboardContent({
   recentLogs,
   vials,
 }: DashboardContentProps) {
+  const [manualLogOpen, setManualLogOpen] = useState(false);
+
+  // Schedule today's dose notifications (fires while tab is open)
+  useEffect(() => {
+    const cleanup = scheduleTodayNotifications(
+      schedules,
+      todayLogs,
+      (schedule) => {
+        if (!schedule.user_peptide?.vial_size_mcg || !schedule.user_peptide?.bac_water_ml) return 0;
+        const result = calculateMixing(
+          schedule.user_peptide.vial_size_mcg,
+          schedule.user_peptide.bac_water_ml,
+          schedule.dose_mcg
+        );
+        return Math.round(result.syringeUnits);
+      }
+    );
+    return cleanup;
+  }, [schedules, todayLogs]);
+
   const doses = useMemo(
     () => buildTodaysDoses(schedules, todayLogs),
     [schedules, todayLogs]
@@ -142,6 +166,10 @@ export function DashboardContent({
         } : null}
       />
 
+      <ReorderAlerts vials={vials} />
+
+      <TitrationAdvanceBanner schedules={schedules} recentLogs={recentLogs} />
+
       {total > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -186,20 +214,31 @@ export function DashboardContent({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <Link href="/calculator">
-          <Button variant="outline" className="w-full touch-target text-sm">
-            <Calculator className="mr-1.5 h-3.5 w-3.5" />
-            Calculator
+          <Button variant="outline" className="w-full touch-target text-xs">
+            <Calculator className="mr-1 h-3.5 w-3.5" />
+            Calc
           </Button>
         </Link>
         <Link href="/my-peptides/new">
-          <Button variant="outline" className="w-full touch-target text-sm">
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
+          <Button variant="outline" className="w-full touch-target text-xs">
+            <Plus className="mr-1 h-3.5 w-3.5" />
             Add Vial
           </Button>
         </Link>
+        <Button
+          variant="outline"
+          className="w-full touch-target text-xs"
+          onClick={() => setManualLogOpen(true)}
+          disabled={vials.length === 0}
+        >
+          <ClipboardList className="mr-1 h-3.5 w-3.5" />
+          Log Dose
+        </Button>
       </div>
+
+      <ManualLogSheet open={manualLogOpen} onOpenChange={setManualLogOpen} />
     </div>
   );
 }
