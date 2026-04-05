@@ -64,7 +64,7 @@ function buildTodaysDoses(schedules: any[], logs: any[]): DoseItem[] {
       syringeUnits = Math.round(result.syringeUnits);
     }
 
-    const times = schedule.times_of_day || [];
+    const times = (schedule.times_of_day || []).map((t: string) => t.slice(0, 5));
     for (const time of times) {
       // BUG FIX: Match by schedule_id AND time slot (hour:minute)
       const matchingLog = logs.find((l) => {

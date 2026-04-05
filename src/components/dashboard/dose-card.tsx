@@ -45,7 +45,7 @@ export function DoseCard({ dose }: DoseCardProps) {
       schedule_id: dose.scheduleId,
       dose_mcg: dose.doseMcg,
       // BUG FIX: Use actual scheduled time, not current time
-      scheduled_at: `${today}T${dose.scheduledTime}:00`,
+      scheduled_at: new Date(`${today}T${dose.scheduledTime.slice(0, 5)}:00`).toISOString(),
       status: "taken",
     });
     if (result) setLocalStatus("taken");
@@ -57,7 +57,7 @@ export function DoseCard({ dose }: DoseCardProps) {
       user_peptide_id: dose.userPeptideId,
       schedule_id: dose.scheduleId,
       dose_mcg: dose.doseMcg,
-      scheduled_at: `${today}T${dose.scheduledTime}:00`,
+      scheduled_at: new Date(`${today}T${dose.scheduledTime.slice(0, 5)}:00`).toISOString(),
       status: "skipped",
     });
     if (result) setLocalStatus("skipped");

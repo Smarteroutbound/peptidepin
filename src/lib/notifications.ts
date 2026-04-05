@@ -124,7 +124,8 @@ export function scheduleTodayNotifications(
         : `${schedule.dose_mcg} mcg`;
     const units = getSyringeUnits(schedule);
 
-    for (const time of schedule.times_of_day || []) {
+    for (const rawTime of schedule.times_of_day || []) {
+      const time = rawTime.slice(0, 5); // normalize HH:MM:SS -> HH:MM
       const notificationId = `${schedule.id}-${today}-${time}`;
 
       // Skip if already fired

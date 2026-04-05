@@ -102,7 +102,7 @@ export function NextDoseHero({ dose }: NextDoseHeroProps) {
               user_peptide_id: dose.userPeptideId,
               schedule_id: dose.scheduleId,
               dose_mcg: dose.doseMcg,
-              scheduled_at: `${today}T${dose.scheduledTime}:00`,
+              scheduled_at: new Date(`${today}T${dose.scheduledTime.slice(0, 5)}:00`).toISOString(),
               status: "taken",
             });
             setDone(true);
