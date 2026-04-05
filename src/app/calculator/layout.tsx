@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PublicHeader } from "@/components/layout/public-header";
 
 export default function CalculatorLayout({
   children,
@@ -7,32 +8,7 @@ export default function CalculatorLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Minimal header for public pages */}
-      <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-heading font-bold text-lg text-foreground"
-          >
-            <span className="text-primary">💉</span>
-            PeptidePin
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/calculator"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Calculators
-            </Link>
-            <Link
-              href="/login"
-              className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Sign in
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* Main content */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
@@ -58,9 +34,6 @@ export default function CalculatorLayout({
             </Link>
             <Link href="/unit-converter" className="hover:text-foreground">
               Unit Converter
-            </Link>
-            <Link href="/login" className="hover:text-foreground">
-              Sign In
             </Link>
           </div>
           <p className="text-xs text-muted-foreground mt-4">

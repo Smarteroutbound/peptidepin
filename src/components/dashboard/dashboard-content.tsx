@@ -11,6 +11,7 @@ import { NextDoseHero } from "./next-dose-hero";
 import { ManualLogSheet } from "./manual-log-sheet";
 import { TitrationAdvanceBanner } from "./titration-advance-banner";
 import { ReorderAlerts } from "./reorder-alerts";
+import { GettingStarted } from "./getting-started";
 import { calculateMixing, formatNumber } from "@/lib/calculations";
 import { scheduleTodayNotifications } from "@/lib/notifications";
 import { Calculator, Plus, ClipboardList } from "lucide-react";
@@ -147,12 +148,22 @@ export function DashboardContent({
     day: "numeric",
   });
 
+  const hasVials = vials.length > 0;
+  const hasSchedules = schedules.some((s) => s.is_active);
+  const hasLoggedDose = recentLogs.length > 0;
+
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-heading font-bold">{greeting}</h1>
         <p className="text-sm text-muted-foreground">{dateStr}</p>
       </div>
+
+      <GettingStarted
+        hasVials={hasVials}
+        hasSchedules={hasSchedules}
+        hasLoggedDose={hasLoggedDose}
+      />
 
       <NextDoseHero
         dose={nextDose ? {

@@ -8,6 +8,7 @@ import { ButtonGroup } from "./button-group";
 import { HorizontalSyringe } from "./horizontal-syringe";
 import { StickyResult } from "./sticky-result";
 import { MathBreakdown } from "./math-breakdown";
+import { SaveToAccountCTA } from "./save-to-account-cta";
 import {
   calculateMixing,
   formatNumber,
@@ -471,6 +472,17 @@ export function CalculatorV2({
           />
         </div>
       </details>
+
+      {/* Save to account CTA — only shown on per-peptide pages, not compact mode */}
+      {peptide && !compact && (
+        <SaveToAccountCTA
+          peptideId={peptide.id}
+          peptideName={peptide.name}
+          vialSizeMcg={vialSize}
+          bacWaterMl={bacWaterMl}
+          doseMcg={desiredDose}
+        />
+      )}
 
       {/* Sticky bottom result */}
       <StickyResult

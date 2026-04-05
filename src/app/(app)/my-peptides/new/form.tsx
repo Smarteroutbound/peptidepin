@@ -35,6 +35,10 @@ export function AddPeptideForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedId = searchParams.get("peptide");
+  // Pre-fill from calculator query params
+  const preVialSize = Number(searchParams.get("vial_size")) || undefined;
+  const preBacWater = Number(searchParams.get("bac_water")) || undefined;
+  const preDose = Number(searchParams.get("dose")) || undefined;
 
   const [peptides, setPeptides] = useState<Peptide[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -54,9 +58,9 @@ export function AddPeptideForm() {
     defaultValues: {
       peptide_id: preselectedId || "",
       custom_label: "",
-      vial_size_mcg: 5000,
-      bac_water_ml: 2,
-      dose_per_injection_mcg: undefined,
+      vial_size_mcg: preVialSize || 5000,
+      bac_water_ml: preBacWater || 2,
+      dose_per_injection_mcg: preDose,
       notes: "",
       date_reconstituted: today,
     },
