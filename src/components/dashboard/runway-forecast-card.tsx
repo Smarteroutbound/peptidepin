@@ -40,8 +40,9 @@ function barColor(status: RunwayStatus) {
 
 function formatDaysLeft(days: number | null): string {
   if (days === null) return "No schedule";
-  if (days <= 0) return "Now";
-  if (days === 1) return "1 day";
+  if (days < 0) return `Overdue ${Math.abs(days)}d`;
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
   if (days < 7) return `${days} days`;
   const weeks = Math.floor(days / 7);
   const remainingDays = days % 7;

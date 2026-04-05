@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { MessageCircle, X, Send, RefreshCw, Loader2, Bot } from "lucide-react";
+import { X, Send, RefreshCw, Loader2, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ChatMessage {
@@ -49,11 +49,11 @@ export function ChatWidget() {
     }
   }, [messages, open]);
 
-  // Focus input when opened
+  // Focus input when opened (L10 FIX: cleanup timeout)
   useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 300);
-    }
+    if (!open) return;
+    const timer = setTimeout(() => inputRef.current?.focus(), 300);
+    return () => clearTimeout(timer);
   }, [open]);
 
   async function sendMessage() {
@@ -102,6 +102,7 @@ export function ChatWidget() {
       const res = await fetch("/api/chat/history", { method: "DELETE" });
       if (res.ok) {
         setMessages([]);
+        setLoaded(false); // M8 FIX: re-fetch next open
         toast.success("Chat cleared");
       } else {
         toast.error("Failed to clear chat");
@@ -129,7 +130,7 @@ export function ChatWidget() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
             onClick={() => setOpen(true)}
-            className="fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 flex items-center justify-center sm:bottom-6"
+            className="fixed bottom-20 right-4 z-[45] h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 flex items-center justify-center sm:bottom-6"
             aria-label="Open AI assistant"
           >
             <Bot className="h-5 w-5" />
@@ -137,7 +138,7 @@ export function ChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Chat panel */}
+      {/* Chat panel (L9 FIX: z-[60] above bottom-nav z-50, mobile height accounts for nav) */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -145,7 +146,7 @@ export function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed z-40 bottom-20 right-4 w-[calc(100vw-2rem)] max-w-sm h-[70vh] max-h-[600px] sm:bottom-6 sm:right-6 sm:w-96 rounded-2xl border border-border bg-background shadow-2xl flex flex-col overflow-hidden"
+            className="fixed z-[60] bottom-20 right-4 w-[calc(100vw-2rem)] max-w-sm h-[calc(100dvh-6rem)] max-h-[600px] sm:bottom-6 sm:right-6 sm:w-96 sm:h-[70vh] rounded-2xl border border-border bg-background shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border/50 p-3 bg-card/50">
@@ -166,6 +167,7 @@ export function ChatWidget() {
                     className="h-8 w-8 p-0"
                     onClick={clearHistory}
                     title="Clear chat"
+                    aria-label="Clear chat history"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
                   </Button>
@@ -176,6 +178,7 @@ export function ChatWidget() {
                   className="h-8 w-8 p-0"
                   onClick={() => setOpen(false)}
                   title="Close"
+                  aria-label="Close chat"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -226,7 +229,7 @@ export function ChatWidget() {
                         : "bg-muted text-foreground rounded-bl-sm"
                     }`}
                   >
-                    {msg.content}
+                    {renderMessageContent(msg.content)}
                   </div>
                 </div>
               ))}
@@ -251,6 +254,7 @@ export function ChatWidget() {
                   placeholder="Ask about your peptides..."
                   rows={1}
                   disabled={sending}
+                  maxLength={2000}
                   className="flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 max-h-24"
                   style={{ minHeight: "38px" }}
                 />
@@ -270,9 +274,34 @@ export function ChatWidget() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Suppress unused lint — MessageCircle is for potential future use */}
-      {false && <MessageCircle />}
     </>
   );
+}
+
+/**
+ * Render message content with lightweight **bold** markdown.
+ * Strips asterisks and renders bold spans instead of literal text.
+ */
+function renderMessageContent(content: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  const regex = /\*\*([^*]+)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <strong key={key++} className="font-semibold">
+        {match[1]}
+      </strong>
+    );
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+  return parts;
 }

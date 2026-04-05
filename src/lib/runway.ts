@@ -57,6 +57,13 @@ const REORDER_SOON_DAYS = 14;
 function scheduleWeeklyBurnMcg(schedule: DoseSchedule): number {
   const dose = schedule.dose_mcg || 0;
   const slots = (schedule.times_of_day || []).length || 1;
+  const daysOfWeek = schedule.days_of_week;
+
+  // If days_of_week is specified (Mon/Wed/Fri style), use that count
+  // as the frequency-per-week multiplier, regardless of label.
+  if (daysOfWeek && daysOfWeek.length > 0 && schedule.frequency !== "custom") {
+    return dose * slots * daysOfWeek.length;
+  }
 
   switch (schedule.frequency) {
     case "once_daily":
@@ -72,7 +79,8 @@ function scheduleWeeklyBurnMcg(schedule: DoseSchedule): number {
     case "custom":
       return dose * slots * 7;
     default:
-      return dose * 7;
+      console.warn("Unknown schedule frequency:", schedule.frequency);
+      return 0;
   }
 }
 
@@ -117,7 +125,8 @@ export function simulateRunway(
   options?: { reorderLeadDays?: number; now?: Date }
 ): RunwayForecast {
   const reorderLeadDays = options?.reorderLeadDays ?? DEFAULT_REORDER_LEAD_DAYS;
-  const today = options?.now ?? new Date();
+  // H1 FIX: clone to avoid mutating caller's Date
+  const today = new Date(options?.now?.getTime() ?? Date.now());
   today.setHours(0, 0, 0, 0);
 
   const activeVials = vials.filter((v) => v.is_active);
@@ -211,6 +220,15 @@ export function simulateRunway(
     0
   );
 
+  // Urgency ranking: stock_out/expired first, then reorder_now, then reorder_soon.
+  // Within the same urgency, sort by effective end date ascending.
+  const urgencyRank: Record<RunwayStatus, number> = {
+    stock_out: 0,
+    expired: 0,
+    reorder_now: 1,
+    reorder_soon: 2,
+    ok: 99,
+  };
   const nextReorderVial =
     vialForecasts
       .filter(
@@ -221,6 +239,8 @@ export function simulateRunway(
           v.status === "expired"
       )
       .sort((a, b) => {
+        const rankDiff = urgencyRank[a.status] - urgencyRank[b.status];
+        if (rankDiff !== 0) return rankDiff;
         if (!a.effectiveEndDate) return 1;
         if (!b.effectiveEndDate) return -1;
         return a.effectiveEndDate.getTime() - b.effectiveEndDate.getTime();

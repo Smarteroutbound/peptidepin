@@ -104,7 +104,7 @@ export async function buildUserStackContext(userId: string): Promise<string> {
   // Recent activity
   if (recentLogs && recentLogs.length > 0) {
     sections.push("\n## Recent Doses (last 10)");
-    for (const log of recentLogs.slice(0, 10)) {
+    for (const log of recentLogs) {
       const vial = vials.find((v) => v.id === log.user_peptide_id);
       const name = vial?.custom_label || vial?.peptide?.name || "Unknown";
       const date = new Date(log.taken_at).toLocaleDateString("en-US", {

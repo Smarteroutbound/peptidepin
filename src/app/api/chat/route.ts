@@ -79,7 +79,7 @@ export async function POST(request: Request) {
             headers: {
               Authorization: `Bearer ${apiKey}`,
               "Content-Type": "application/json",
-              "HTTP-Referer": "https://peptidepin.com",
+              "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "https://peptidepin.com",
               "X-Title": "PeptidePin",
             },
             body: JSON.stringify({
@@ -111,13 +111,16 @@ export async function POST(request: Request) {
       }
     }
 
-    // Persist both messages
-    await (supabase.from("chat_messages") as any).insert([
+    // H3 FIX: Persist both messages and log any failures
+    const { error: insertError } = await (supabase.from("chat_messages") as any).insert([
       { user_id: user.id, role: "user", content: message },
       { user_id: user.id, role: "assistant", content: reply },
     ]);
+    if (insertError) {
+      console.error("Failed to persist chat messages:", insertError);
+    }
 
-    // Trim to last MAX_TOTAL_PER_USER messages
+    // H4 FIX: Explicit DESC order so slice() keeps newest and trims oldest
     const { data: allMessages } = (await supabase
       .from("chat_messages")
       .select("id, created_at")
@@ -125,6 +128,7 @@ export async function POST(request: Request) {
       .order("created_at", { ascending: false })) as { data: any[] | null; error: any };
 
     if (allMessages && allMessages.length > MAX_TOTAL_PER_USER) {
+      // allMessages is DESC — slice from index MAX_TOTAL_PER_USER gives oldest rows
       const toDelete = allMessages.slice(MAX_TOTAL_PER_USER).map((m) => m.id);
       if (toDelete.length > 0) {
         await (supabase.from("chat_messages") as any)

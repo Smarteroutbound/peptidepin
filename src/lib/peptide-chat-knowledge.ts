@@ -159,15 +159,32 @@ export const PEPTIDE_KNOWLEDGE: PeptideKnowledge[] = [
 ];
 
 /**
+ * Escape string for use in a RegExp.
+ */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Test a query for a word-boundary match of a term.
+ * Short terms like "bpc" or "reta" would give false positives with .includes(),
+ * so we use word boundaries. Dashes are treated as word chars.
+ */
+function matchesTerm(query: string, term: string): boolean {
+  const pattern = new RegExp(`(^|[^a-z0-9-])${escapeRegExp(term)}([^a-z0-9-]|$)`, "i");
+  return pattern.test(query);
+}
+
+/**
  * Find a peptide by any keyword in its name or aliases.
  */
 export function findPeptideByKeyword(query: string): PeptideKnowledge | null {
   const lower = query.toLowerCase();
   for (const peptide of PEPTIDE_KNOWLEDGE) {
-    if (lower.includes(peptide.slug.toLowerCase())) return peptide;
-    if (lower.includes(peptide.displayName.toLowerCase())) return peptide;
+    if (matchesTerm(lower, peptide.slug.toLowerCase())) return peptide;
+    if (matchesTerm(lower, peptide.displayName.toLowerCase())) return peptide;
     for (const alias of peptide.aliases) {
-      if (lower.includes(alias.toLowerCase())) return peptide;
+      if (matchesTerm(lower, alias.toLowerCase())) return peptide;
     }
   }
   return null;
@@ -181,11 +198,7 @@ export function fallbackAnswer(query: string, context: string): string {
   const lower = query.toLowerCase();
 
   // Greeting
-  if (
-    lower.match(/^(hi|hello|hey|sup|yo)\b/) ||
-    lower === "hi" ||
-    lower === "hello"
-  ) {
+  if (/^(hi|hello|hey|sup|yo)\b/.test(lower)) {
     return "Hi! I'm PeptidePin's assistant. I can help you understand your own peptides, vials, and schedules. Try asking 'how much BPC do I have left?' or 'when does my vial expire?'";
   }
 
