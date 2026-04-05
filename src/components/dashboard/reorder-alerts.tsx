@@ -44,7 +44,7 @@ export function ReorderAlerts({ vials }: ReorderAlertsProps) {
 
     // Expiry check (28 days after reconstitution)
     if (vial.date_reconstituted) {
-      const reconDate = new Date(vial.date_reconstituted);
+      const reconDate = new Date(vial.date_reconstituted + "T00:00:00");
       const expiryDate = new Date(reconDate);
       expiryDate.setDate(expiryDate.getDate() + 28);
       const daysUntilExpiry = Math.ceil(

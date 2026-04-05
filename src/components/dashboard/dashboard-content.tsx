@@ -12,7 +12,9 @@ import { ManualLogSheet } from "./manual-log-sheet";
 import { TitrationAdvanceBanner } from "./titration-advance-banner";
 import { ReorderAlerts } from "./reorder-alerts";
 import { GettingStarted } from "./getting-started";
+import { RunwayForecastCard } from "./runway-forecast-card";
 import { calculateMixing, formatNumber } from "@/lib/calculations";
+import { simulateRunway } from "@/lib/runway";
 import { scheduleTodayNotifications } from "@/lib/notifications";
 import { Calculator, Plus, ClipboardList } from "lucide-react";
 
@@ -127,6 +129,11 @@ export function DashboardContent({
     [schedules, todayLogs]
   );
 
+  const forecast = useMemo(
+    () => simulateRunway(vials, schedules),
+    [vials, schedules]
+  );
+
   const completed = doses.filter((d) => d.status !== "pending").length;
   const total = doses.length;
   const pendingDoses = doses.filter((d) => d.status === "pending");
@@ -178,6 +185,8 @@ export function DashboardContent({
       />
 
       <ReorderAlerts vials={vials} />
+
+      <RunwayForecastCard forecast={forecast} />
 
       <TitrationAdvanceBanner schedules={schedules} recentLogs={recentLogs} />
 

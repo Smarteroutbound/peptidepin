@@ -70,7 +70,7 @@ export function ManualLogSheet({ open, onOpenChange }: ManualLogSheetProps) {
       return;
     }
 
-    const scheduledAt = `${date}T${time}:00`;
+    const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
     const result = await logDose({
       user_peptide_id: vialId,
       dose_mcg: doseMcg,
